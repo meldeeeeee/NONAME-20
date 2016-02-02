@@ -18,6 +18,7 @@ const byte ENABLE_PIN = 4; // Declare the digital pin for driver output
 const byte LED_PIN = 13; // Declare the diginal pin number for built in LED
 
 SoftwareSerial rs485 (2, 3);  // Assign the receive and transmit pin for the RS485 bus
+BMP280 bmpSensor; // Create the BMP280 object
 
 // RS485 callback routines
 void fWrite (const byte what) { // Write mode
@@ -44,6 +45,18 @@ void setup()
   Serial.begin (9600); // Set data rate for serial communication
   pinMode (ENABLE_PIN, OUTPUT);  // Define driver output
   pinMode (LED_PIN, OUTPUT);  // Define built-in LED
+
+  // Define BMP280 run settings
+  bmpSensor.settings.I2CAddress = 0x76; // I2C address
+  bmpSensor.settings.runMode = 3; // Normal run mode
+  bmpSensor.settings.tStandby = 3; // Standby 250ms
+  bmpSensor.settings.filter = 4; // FIR Filter 16 coefficients
+  bmpSensor.settings.tempOverSample = 2; // Temperature oversample *2
+  bmpSensor.settings.pressOverSample = 5; // Pressure oversample * 16
+
+  bmpSensor.begin(); //  Initialize the barometric pressure sensor with above settings
+
+  delay(10);  // Make sure sensor had enough time to turn on. BMP280 requires 2ms to start up.
 
 } // end of setup
 
@@ -113,7 +126,26 @@ void loop()
         b2fAlt.b[3] = buf [14];
         bmpSlvAlt = b2fAlt.f;
 
+        float bmpTemp, bmpPres, bmpAlt; // Create variables for the values from the barometric pressure sensor
+
+        bmpTemp = bmpSensor.readTempC(); // Read the temp
+        bmpPres = bmpSensor.readFloatPressure(); // Read the pressure
+        bmpAlt = bmpSensor.readFloatAltitudeMeters(); // Read the altitude
+
         // Write data to the serial console
+        Serial.print ("Master :");
+        Serial.print ("\t");
+        Serial.print ("Temp: ");
+        Serial.print (bmpTemp, 2);
+        Serial.print (" degrees C");
+        Serial.print ("\t");
+        Serial.print ("Pressure: ");
+        Serial.print (bmpPres, 3);
+        Serial.print (" Pa");
+        Serial.print ("\t");
+        Serial.print ("Altitude: ");
+        Serial.print (bmpAlt, 3);
+        Serial.println(" m");
         Serial.print ("Slave ");
         Serial.print (i, DEC);
         Serial.print (":");
@@ -128,6 +160,9 @@ void loop()
         Serial.print ("\t");
         Serial.print ("Altitude: ");
         Serial.print (bmpSlvAlt, 3);
+        Serial.println(" m");
+        Serial.print("Difference in height: ");
+        Serial.print (bmpAlt - bmpSlvAlt, 3);
         Serial.println(" m");
 
         digitalWrite (LED_PIN, LOW);  // Done processing. Turn off LED

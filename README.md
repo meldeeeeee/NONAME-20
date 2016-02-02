@@ -4,6 +4,7 @@ NONAME-20 Project
 This project:
 
 * Reads sensor data from up to 4 slaves devices
+* Reads altitude from master device
 
 Version History
 ---------------
